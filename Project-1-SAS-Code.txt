@@ -1,0 +1,85 @@
+/* *Rajiv's Data*;
+PROC IMPORT DATAFILE= "/folders/myfolders/Data/Project-1-Data_Rajeev_v1.0.xlsx"
+OUT= projectONE1
+DBMS=xlsx
+REPLACE;
+SHEET="Sheet1";
+GETNAMES=YES;
+RUN;
+Proc print data=projectONE1;
+RUN;
+
+*Manjula's Data*;
+PROC IMPORT DATAFILE= "/folders/myfolders/Data/Project-1-Data_MANJULA_v1.0.xlsx"
+OUT= projectONE2
+DBMS=xlsx
+REPLACE;
+SHEET="Sheet1";
+GETNAMES=YES;
+RUN;
+Proc print data=projectONE2;
+RUN;
+
+*Araya's Data*;
+PROC IMPORT DATAFILE= "/folders/myfolders/Data/Project-1-Data_Araya_v1.0.xlsx"
+OUT= projectONE3
+DBMS=xlsx
+REPLACE;
+SHEET="Sheet1";
+GETNAMES=YES;
+RUN;
+Proc print data=projectONE3;
+RUN;
+
+*Merging data "as is" and missing value named as "."*;
+Data projectONE;
+merge projectONE1 projectONE3 projectONE2;
+By Country;
+run;
+Proc print data=projectONE;
+run;
+
+*Merging data and data included using common countries for ALL datasets and missing value named as "."*;
+data PROJECT1;
+merge projectONE1(IN=inprojectONE1) projectONE3(IN=inprojectONE3) projectONE2(IN=inprojectONE2);
+by Country;
+if inprojectONE1 and inprojectONE3 and inprojectONE2;
+If cmiss(of _all_) then delete; 
+run;
+proc print data=PROJECT1; 
+run;
+
+PROC EXPORT DATA=PROJECT1 
+OUTFILE="/folders/myfolders/Data/Project1Data.csv" 
+DBMS="csv" 
+REPLACE 
+LABEL;
+run;
+*/
+
+proc import datafile="/folders/myfolders/Data/Project1Data.csv" 
+out=PROJECT1
+DBMS=csv
+REPLACE;
+GETNAMES=YES;
+RUN;
+
+proc print data=PROJECT1;
+run;
+
+proc univariate data=PROJECT1;
+histogram ;
+run;
+
+Proc Reg Data=PROJECT1  plots(unpack label); 
+*plots(unpack label);
+model INFANTMORATLITYRATE = POPULATION MEDIANAGE POPGROWTH BIRTHRATE MTRNLDTH HEATHEXPENDITURE OBESITY /*TOTALFERTILITYRATE*/ /VIF R CLB CLM CLI;
+run;
+
+Proc Reg Data=PROJECT1  plots(label) = (rstudentleverage cooksd); 
+*plots(unpack label);
+model INFANTMORATLITYRATE =  MEDIANAGE POPGROWTH BIRTHRATE MTRNLDTH HEATHEXPENDITURE OBESITY TOTALFERTILITYRATE /VIF selection=stepwise;;
+run;
+
+
+
