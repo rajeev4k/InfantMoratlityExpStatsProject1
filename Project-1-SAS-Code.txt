@@ -64,22 +64,44 @@ REPLACE;
 GETNAMES=YES;
 RUN;
 
-proc print data=PROJECT1;
+data Project2;
+set PROJECT1;
+logINFANTMORATLITYRATE=log(INFANTMORATLITYRATE);
 run;
 
-proc univariate data=PROJECT1;
+
+proc print data=PROJECT2;
+run;
+
+proc univariate data=PROJECT2;
 histogram ;
 run;
 
-Proc Reg Data=PROJECT1  plots(unpack label); 
+/*Step -1 Model Building - To Exclude Highlighly Correlated Variables from the Model*/
+Proc Reg Data=PROJECT2  corr plots(label)=(rstudentleverage cooksd); 
 *plots(unpack label);
-model INFANTMORATLITYRATE = POPULATION MEDIANAGE POPGROWTH BIRTHRATE MTRNLDTH HEATHEXPENDITURE OBESITY /*TOTALFERTILITYRATE*/ /VIF R CLB CLM CLI;
+model logINFANTMORATLITYRATE =  POPULATION MEDIANAGE POPGROWTH BIRTHRATE MTRNLDTH  HEATHEXPENDITURE OBESITY GDP TAXREVENUE UNEMPRATE TOTALFERTILITYRATE / partial VIF ;
 run;
 
-Proc Reg Data=PROJECT1  plots(label) = (rstudentleverage cooksd); 
+/*Step -2 Model Building - Exclude Highlighly Correlated Variables from the Model*/
+Proc Reg Data=PROJECT2  corr plots(label)=(rstudentleverage cooksd); 
 *plots(unpack label);
-model INFANTMORATLITYRATE =  MEDIANAGE POPGROWTH BIRTHRATE MTRNLDTH HEATHEXPENDITURE OBESITY TOTALFERTILITYRATE /VIF selection=stepwise;;
+model logINFANTMORATLITYRATE =  POPULATION MEDIANAGE  HEATHEXPENDITURE OBESITY GDP TAXREVENUE UNEMPRATE /*BIRTHRATE POPGROWTH MTRNLDTH TOTALFERTILITYRATE*/ / partial VIF ;
 run;
 
+/*Step -3 Model Building - Variable Selection Process Using LARS Algorithm*/
+Proc GLMSELECT data=PROJECT2;
+model logINFANTMORATLITYRATE = POPULATION MEDIANAGE  HEATHEXPENDITURE OBESITY GDP TAXREVENUE UNEMPRATE  / selection=LARS(choose = cv stop = aic) cvmethod = random(5) stats = (adjrsq cp bic sbc sl);
+run;
 
+/*Step -4 Model Building - Fit Linear Regression Model*/
+Proc Reg Data=PROJECT2  corr plots(label)=(rstudentleverage cooksd); 
+*plots(unpack label);
+model logINFANTMORATLITYRATE =  MEDIANAGE   OBESITY GDP  /partial VIF R ;
+run;
 
+/*Step -5 Model Building - LACK of FIT Test*/
+Proc Reg Data=PROJECT2  corr plots(label)=(rstudentleverage cooksd); 
+*plots(unpack label);
+model logINFANTMORATLITYRATE = MEDIANAGE   OBESITY GDP /lackfit VIF  ;
+run;
